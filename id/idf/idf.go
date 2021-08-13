@@ -13,8 +13,8 @@ package idf
 import (
 	"encoding/json"
 	"github.com/pkg/errors"
-	"gitlab.com/xx_network/primitives/id"
-	"gitlab.com/xx_network/primitives/utils"
+	"git.xx.network/xx_network/primitives/id"
+	"git.xx.network/xx_network/primitives/utils"
 )
 
 // The length of the salt byte array

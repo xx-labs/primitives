@@ -8,8 +8,8 @@ package idf
 
 import (
 	"bytes"
-	"gitlab.com/xx_network/primitives/id"
-	"gitlab.com/xx_network/primitives/utils"
+	"git.xx.network/xx_network/primitives/id"
+	"git.xx.network/xx_network/primitives/utils"
 	"os"
 	"reflect"
 	"testing"
