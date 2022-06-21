@@ -1,0 +1,80 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                           //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file                                                               //
+////////////////////////////////////////////////////////////////////////////////
+
+package exponential
+
+import (
+	"math/rand"
+	"reflect"
+	"testing"
+)
+
+// Tests that NewMovingAvg returns a new MovingAvg with the expected
+// values.
+func TestNewMovingAvg(t *testing.T) {
+	expected := &MovingAvg{
+		cutoff: 12,
+		aN:     0.15,
+		s:      2,
+		e:      100,
+	}
+
+	ea := NewMovingAvg(expected.cutoff, expected.aN, expected.s, expected.e)
+
+	if !reflect.DeepEqual(expected, ea) {
+		t.Errorf("Received unexpected MovingAvg."+
+			"\nexpected: %+v\nreceived: %+v", expected, ea)
+	}
+}
+
+func TestMovingAvg_Intake(t *testing.T) {
+	ea := NewMovingAvg(0.5, 0, 1, 100)
+
+	for i := 0; i < int(ea.e); i++ {
+		err := ea.Intake(boolToFloat(i%2 == 0))
+		if err != nil {
+			t.Errorf("Error on instake #%d: %+v", i, err)
+		}
+	}
+}
+
+// Tests that MovingAvg.IsOverCutoff returns false when the cutoff has not
+// been reach and true when it has been reached
+func TestMovingAvg_IsOverCutoff(t *testing.T) {
+	ea := NewMovingAvg(
+		.35, defaultA0, defaultSmoothingFactor, defaultNumberOfEvents)
+	prng := rand.New(rand.NewSource(42))
+
+	if ea.IsOverCutoff() {
+		t.Errorf("IsOverCutoff reported that the cutoff has been reached "+
+			"when it has not.\ncutoff:  %f\naverage: %f", ea.cutoff, ea.aN)
+	}
+
+	var err error
+	for err == nil {
+		err = ea.Intake(boolToFloat(prng.Uint64()%2 == 0))
+	}
+
+	if !ea.IsOverCutoff() {
+		t.Errorf("IsOverCutoff reported that the cutoff has not been reached "+
+			"when it has.\ncutoff:  %f\naverage: %f", ea.cutoff, ea.aN)
+	}
+
+}
+
+// Tests both cases for boolToFloat.
+func Test_boolToFloat(t *testing.T) {
+	if boolToFloat(true) != 1 {
+		t.Errorf("Received incorrect float for boolean %t."+
+			"\nexpected: %f\nreceived: %f", true, float32(1), boolToFloat(true))
+	}
+
+	if boolToFloat(false) != 0 {
+		t.Errorf("Received incorrect float for boolean %t."+
+			"\nexpected: %f\nreceived: %f", false, float32(0), boolToFloat(false))
+	}
+}
