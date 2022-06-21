@@ -76,8 +76,8 @@ func (m *MovingAvg) IsOverCutoff() bool {
 	return m.aN > m.cutoff
 }
 
-// boolToFloat returns 1 if true and 0 if false.
-func boolToFloat(b bool) float32 {
+// BoolToFloat returns 1 if true and 0 if false.
+func BoolToFloat(b bool) float32 {
 	if b {
 		return 1
 	}

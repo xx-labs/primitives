@@ -44,7 +44,7 @@ func TestMovingAvg_Intake(t *testing.T) {
 	ea := NewMovingAvg(MovingAvgParams{0.5, 0, 1, 100})
 
 	for i := 0; i < int(ea.e); i++ {
-		err := ea.Intake(boolToFloat(i%2 == 0))
+		err := ea.Intake(BoolToFloat(i%2 == 0))
 		if err != nil {
 			t.Errorf("Error on instake #%d: %+v", i, err)
 		}
@@ -64,7 +64,7 @@ func TestMovingAvg_IsOverCutoff(t *testing.T) {
 
 	var err error
 	for err == nil {
-		err = ea.Intake(boolToFloat(prng.Uint64()%2 == 0))
+		err = ea.Intake(BoolToFloat(prng.Uint64()%2 == 0))
 	}
 
 	if !ea.IsOverCutoff() {
@@ -74,15 +74,15 @@ func TestMovingAvg_IsOverCutoff(t *testing.T) {
 
 }
 
-// Tests both cases for boolToFloat.
-func Test_boolToFloat(t *testing.T) {
-	if boolToFloat(true) != 1 {
+// Tests both cases for BoolToFloat.
+func Test_BoolToFloat(t *testing.T) {
+	if BoolToFloat(true) != 1 {
 		t.Errorf("Received incorrect float for boolean %t."+
-			"\nexpected: %f\nreceived: %f", true, float32(1), boolToFloat(true))
+			"\nexpected: %f\nreceived: %f", true, float32(1), BoolToFloat(true))
 	}
 
-	if boolToFloat(false) != 0 {
+	if BoolToFloat(false) != 0 {
 		t.Errorf("Received incorrect float for boolean %t."+
-			"\nexpected: %f\nreceived: %f", false, float32(0), boolToFloat(false))
+			"\nexpected: %f\nreceived: %f", false, float32(0), BoolToFloat(false))
 	}
 }
