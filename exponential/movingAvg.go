@@ -12,40 +12,54 @@ import (
 	"sync"
 )
 
-const (
-	defaultA0              = 0.15
-	defaultSmoothingFactor = 2
-	defaultNumberOfEvents  = 100
-)
-
 // MovingAvg tracks the exponential moving average across a number of events and
 // reports when it has surpassed the set cutoff.
 type MovingAvg struct {
-	cutoff float32 // Maximum limit for the average
-	aN     float32 // A(n), current average (initialize to A(0))
-	s      float32 // Exponential smoothing factor
-	e      uint32  // Number of events to average over
+	// The maximum limit for the moving average aN allowed.
+	cutoff float32
+
+	// A(n), the current exponential moving average (initialize to A(0)).
+	aN float32
+
+	// Exponential smoothing factor; gives the most recent events more weight.
+	// The greater the smoothing factor, the greater the influence of more
+	// recent events.
+	s float32
+
+	// The number of events to average over.
+	e uint32
+
 	sync.Mutex
 }
 
 // NewMovingAvg creates a new MovingAvg with the given cutoff, initial average,
 // smoothing factor, and number of events to average.
-func NewMovingAvg(cutoff, a0, s float32, e uint32) *MovingAvg {
+func NewMovingAvg(p MovingAvgParams) *MovingAvg {
 	return &MovingAvg{
-		cutoff: cutoff,
-		aN:     a0,
-		s:      s,
-		e:      e,
+		cutoff: p.Cutoff,
+		aN:     p.InitialAverage,
+		s:      p.SmoothingFactor,
+		e:      p.NumberOfEvents,
 	}
 }
 
 // Intake takes in the current average and calculates the exponential average
 // returning true if it is over the cutoff and false otherwise.
+// The moving average is calculated by:
+//  A(n) = a × (S/E) + A(n-1) × (1 − S/E)
+// Where:
+//  A(n) is the current exponential moving average
+//  A(n-1) is the previous exponential moving average
+//  a is the intake value
+//  S is the smoothing factor
+//  E is the number of events the average is over
 func (m *MovingAvg) Intake(a float32) error {
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
 
-	m.aN = (a * (m.s / float32(m.e))) + (m.aN * (1 - (m.s / float32(m.e))))
+	// Calculate exponential moving average
+	k := m.s / (1 + float32(m.e))
+	m.aN = (a * k) + (m.aN * (1 - k))
 
 	if m.aN > m.cutoff {
 		return errors.Errorf("exponential average for the last %d events of "+

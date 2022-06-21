@@ -17,13 +17,19 @@ import (
 // values.
 func TestNewMovingAvg(t *testing.T) {
 	expected := &MovingAvg{
-		cutoff: 12,
-		aN:     0.15,
-		s:      2,
-		e:      100,
+		cutoff: 0.23,
+		aN:     0.5,
+		s:      4,
+		e:      1000,
+	}
+	p := MovingAvgParams{
+		Cutoff:          expected.cutoff,
+		InitialAverage:  expected.aN,
+		SmoothingFactor: expected.s,
+		NumberOfEvents:  expected.e,
 	}
 
-	ea := NewMovingAvg(expected.cutoff, expected.aN, expected.s, expected.e)
+	ea := NewMovingAvg(p)
 
 	if !reflect.DeepEqual(expected, ea) {
 		t.Errorf("Received unexpected MovingAvg."+
@@ -31,8 +37,11 @@ func TestNewMovingAvg(t *testing.T) {
 	}
 }
 
+// Tests that MovingAvg.Intake does not return an error.
+// NOTE: This is not a full or accurate test of MovingAvg.Intake. Not sure if
+//  there is a good test for it, but if there is, you should add it.
 func TestMovingAvg_Intake(t *testing.T) {
-	ea := NewMovingAvg(0.5, 0, 1, 100)
+	ea := NewMovingAvg(MovingAvgParams{0.5, 0, 1, 100})
 
 	for i := 0; i < int(ea.e); i++ {
 		err := ea.Intake(boolToFloat(i%2 == 0))
@@ -45,8 +54,7 @@ func TestMovingAvg_Intake(t *testing.T) {
 // Tests that MovingAvg.IsOverCutoff returns false when the cutoff has not
 // been reach and true when it has been reached
 func TestMovingAvg_IsOverCutoff(t *testing.T) {
-	ea := NewMovingAvg(
-		.35, defaultA0, defaultSmoothingFactor, defaultNumberOfEvents)
+	ea := NewMovingAvg(DefaultMovingAvgParams())
 	prng := rand.New(rand.NewSource(42))
 
 	if ea.IsOverCutoff() {
