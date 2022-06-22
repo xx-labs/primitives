@@ -41,12 +41,13 @@ func TestNewMovingAvg(t *testing.T) {
 // NOTE: This is not a full or accurate test of MovingAvg.Intake. Not sure if
 //  there is a good test for it, but if there is, you should add it.
 func TestMovingAvg_Intake(t *testing.T) {
-	ea := NewMovingAvg(MovingAvgParams{0.5, 0, 1, 100})
+	ea := NewMovingAvg(DefaultMovingAvgParams())
 
 	for i := 0; i < int(ea.e); i++ {
 		err := ea.Intake(BoolToFloat(i%2 == 0))
 		if err != nil {
 			t.Errorf("Error on instake #%d: %+v", i, err)
+			break
 		}
 	}
 }

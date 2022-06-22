@@ -9,6 +9,7 @@ package exponential
 
 import (
 	"github.com/pkg/errors"
+	jww "github.com/spf13/jwalterweatherman"
 	"sync"
 )
 
@@ -35,6 +36,7 @@ type MovingAvg struct {
 // NewMovingAvg creates a new MovingAvg with the given cutoff, initial average,
 // smoothing factor, and number of events to average.
 func NewMovingAvg(p MovingAvgParams) *MovingAvg {
+	jww.DEBUG.Printf("[MAVG] Tracking new exponential moving average: %+v", p)
 	return &MovingAvg{
 		cutoff: p.Cutoff,
 		aN:     p.InitialAverage,
@@ -45,6 +47,7 @@ func NewMovingAvg(p MovingAvgParams) *MovingAvg {
 
 // Intake takes in the current average and calculates the exponential average
 // returning true if it is over the cutoff and false otherwise.
+//
 // The moving average is calculated by:
 //  A(n) = a × (S/E) + A(n-1) × (1 − S/E)
 // Where:
@@ -60,6 +63,10 @@ func (m *MovingAvg) Intake(a float32) error {
 	// Calculate exponential moving average
 	k := m.s / (1 + float32(m.e))
 	m.aN = (a * k) + (m.aN * (1 - k))
+
+	jww.TRACE.Printf(
+		"[MAVG] Intake %.4f: new moving average %.2f%% over %d events",
+		a, m.aN*100, m.e)
 
 	if m.aN > m.cutoff {
 		return errors.Errorf("exponential average for the last %d events of "+
