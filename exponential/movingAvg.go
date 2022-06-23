@@ -36,7 +36,7 @@ type MovingAvg struct {
 // NewMovingAvg creates a new MovingAvg with the given cutoff, initial average,
 // smoothing factor, and number of events to average.
 func NewMovingAvg(p MovingAvgParams) *MovingAvg {
-	jww.DEBUG.Printf("[MAVG] Tracking new exponential moving average: %+v", p)
+	jww.TRACE.Printf("[MAVG] Tracking new exponential moving average: %+v", p)
 	return &MovingAvg{
 		cutoff: p.Cutoff,
 		aN:     p.InitialAverage,
