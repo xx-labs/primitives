@@ -1,3 +1,10 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
+
 package region
 
 import (
@@ -42,12 +49,13 @@ func TestWeights(t *testing.T) {
 		fmt.Printf("Current:%d, weight:%d\n", current, weights[current])
 	}
 
-	fmt.Printf("FinalList:%v,", weights)
+	fmt.Printf("FinalList:%v,\n", weights)
 
 }
 
 // All returns all combinations for a given string array.
-// This is essentially a powerset of the given set except that the empty set is disregarded.
+// This is essentially a powerset of the given set except that the empty set is
+// disregarded.
 func All(set []int) (subsets [][]int) {
 	length := uint(len(set))
 

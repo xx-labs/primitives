@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                                       //
-//                                                                                        //
-// Use of this source code is governed by a license that can be found in the LICENSE file //
-////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package rateLimiting
 
@@ -15,7 +16,7 @@ import (
 	"time"
 )
 
-// Test that CreateBucketFromLeakRatio() generates a new bucket with all the
+// Test that CreateBucketFromLeakRatio generates a new bucket with all the
 // expected fields.
 func TestCreateBucketWithLeakRate(t *testing.T) {
 	// Setup expected values
@@ -27,36 +28,35 @@ func TestCreateBucketWithLeakRate(t *testing.T) {
 
 	// Test fields for expected results
 	if b.capacity != expectedCapacity {
-		t.Errorf("CreateBucketFromLeakRatio() generated Bucket with incorrect "+
-			"capacity.\n\texpected: %v\n\treceived: %v",
+		t.Errorf("CreateBucketFromLeakRatio generated Bucket with incorrect "+
+			"capacity.\nexpected: %d\nreceived: %d",
 			expectedCapacity, b.capacity)
 	}
 
 	if b.remaining != 0 {
-		t.Errorf("CreateBucketFromLeakRatio() generated Bucket with incorrect "+
-			"remaining.\n\texpected: %v\n\treceived: %v", 0, b.remaining)
+		t.Errorf("CreateBucketFromLeakRatio generated Bucket with incorrect "+
+			"remaining.\nexpected: %d\nreceived: %d", 0, b.remaining)
 	}
 
 	if b.leakRate != expectedLeakRate {
-		t.Errorf("CreateBucketFromLeakRatio() generated Bucket with incorrect "+
-			"leak rate.\n\texpected: %v\n\treceived: %v",
+		t.Errorf("CreateBucketFromLeakRatio generated Bucket with incorrect "+
+			"leak rate.\nexpected: %f\nreceived: %f",
 			expectedLeakRate, b.leakRate)
 	}
 
 	// Check that the lastUpdate occurred recently
 	if time.Now().UnixNano()-b.lastUpdate > time.Second.Nanoseconds() {
-		t.Errorf("CreateBucketFromLeakRatio() generated Bucket with old "+
-			"lastUpdate.\n\treceived: %v", b.lastUpdate)
+		t.Errorf("CreateBucketFromLeakRatio generated Bucket with old "+
+			"lastUpdate.\nreceived: %d", b.lastUpdate)
 	}
 
 	if b.locked {
-		t.Errorf("CreateBucketFromLeakRatio() generated Bucket with incorrect "+
-			"lock.\n\texpected: %v\n\treceived: %v",
-			expectedLeakRate, b.leakRate)
+		t.Errorf("CreateBucketFromLeakRatio generated Bucket with incorrect "+
+			"lock.\nexpected: %t\nreceived: %t", false, b.locked)
 	}
 }
 
-// Test that CreateBucket() generates a new bucket with all the expected fields.
+// Test that CreateBucket generates a new bucket with all the expected fields.
 func TestCreateBucket(t *testing.T) {
 	// Setup expected values
 	expectedCapacity := rand.Uint32()
@@ -66,12 +66,12 @@ func TestCreateBucket(t *testing.T) {
 	b := CreateBucket(expectedCapacity, 3.0, 5*time.Millisecond, nil)
 
 	if b.leakRate != expectedLeakRate {
-		t.Errorf("CreateBucketFromLeakRatio() generated Bucket with incorrect leak rate."+
-			"\n\texpected: %v\n\treceived: %v", expectedLeakRate, b.leakRate)
+		t.Errorf("New Bucket has incorrect leak rate."+
+			"\nexpected: %f\nreceived: %f", expectedLeakRate, b.leakRate)
 	}
 }
 
-// Test that CreateBucketFromDB() produces expected bucket.
+// Test that CreateBucketFromDB produces expected bucket.
 func TestCreateBucketFromDB(t *testing.T) {
 	// Setup expected values
 	expectedCapacity := rand.Uint32()
@@ -79,11 +79,10 @@ func TestCreateBucketFromDB(t *testing.T) {
 	expectedLeakDuration := time.Duration(rand.Uint32())
 	expectedInBucket := rand.Uint32()
 	timestamp := time.Now().UnixNano()
-	addToDb := func(a uint32, b int64) {}
+	updateDB := func(uint32, int64) {}
 
-	testBucket := CreateBucketFromDB(expectedCapacity,
-		expectedLeaked, expectedLeakDuration, expectedInBucket,
-		timestamp, addToDb)
+	testBucket := CreateBucketFromDB(expectedCapacity, expectedLeaked,
+		expectedLeakDuration, expectedInBucket, timestamp, updateDB)
 
 	expectedBucket := &Bucket{
 		capacity:   expectedCapacity,
@@ -92,7 +91,7 @@ func TestCreateBucketFromDB(t *testing.T) {
 		lastUpdate: timestamp,
 		locked:     false,
 		whitelist:  false,
-		addToDb:    addToDb,
+		updateDB:   updateDB,
 	}
 
 	expectedJson, err := expectedBucket.MarshalJSON()
@@ -106,13 +105,13 @@ func TestCreateBucketFromDB(t *testing.T) {
 	}
 
 	if !bytes.Equal(expectedJson, testJson) {
-		t.Errorf("CreateBucketFromDB() produced an incorrect bucket."+
-			"\n\texepcted: %+v\n\treceived: %+v", expectedBucket, testBucket)
+		t.Errorf("CreateBucketFromDB produced an incorrect bucket."+
+			"\nexepcted: %+v\nreceived: %+v", expectedBucket, testBucket)
 
 	}
 }
 
-// Tests that CreateBucketFromParams() produces the expected bucket.
+// Tests that CreateBucketFromParams produces the expected bucket.
 func TestCreateBucketFromParams(t *testing.T) {
 	expectedBucket := &Bucket{
 		capacity:   rand.Uint32(),
@@ -135,12 +134,12 @@ func TestCreateBucketFromParams(t *testing.T) {
 	testBucket := CreateBucketFromParams(params, nil)
 
 	if !reflect.DeepEqual(expectedBucket, testBucket) {
-		t.Errorf("CreateBucketFromParams() produced an incorrect bucket."+
-			"\n\texepcted: %+v\n\treceived: %+v", expectedBucket, testBucket)
+		t.Errorf("CreateBucketFromParams produced an incorrect bucket."+
+			"\nexepcted: %+v\nreceived: %+v", expectedBucket, testBucket)
 	}
 }
 
-// Tests that Bucket.Capacity() returns the correct value for a new Bucket.
+// Tests that Bucket.Capacity returns the correct value for a new Bucket.
 func TestBucket_Capacity(t *testing.T) {
 	// Setup expected values
 	expectedCapacity := rand.Uint32()
@@ -149,83 +148,83 @@ func TestBucket_Capacity(t *testing.T) {
 	b := CreateBucketFromLeakRatio(expectedCapacity, rand.Float64(), nil)
 
 	if b.Capacity() != expectedCapacity {
-		t.Errorf("Capacity() returned incorrect capacity."+
-			"\n\texpected: %v\n\treceived: %v", expectedCapacity, b.Capacity())
+		t.Errorf("Capacity returned incorrect capacity."+
+			"\nexpected: %d\nreceived: %d", expectedCapacity, b.Capacity())
 	}
 }
 
-// Tests that Bucket.Remaining() returns the correct value for a new Bucket.
+// Tests that Bucket.Remaining returns the correct value for a new Bucket.
 func TestBucket_Remaining(t *testing.T) {
 	// Create new Bucket
 	b := CreateBucketFromLeakRatio(rand.Uint32(), rand.Float64(), nil)
 
 	if b.Remaining() != 0 {
-		t.Errorf("Remaining() returned incorrect remaining for the bucket."+
-			"\n\texpected: %v\n\treceived: %v", 0, b.Remaining())
+		t.Errorf("Remaining returned incorrect remaining for the bucket."+
+			"\nexpected: %d\nreceived: %d", 0, b.Remaining())
 	}
 }
 
-// Tests that IsLocked() returns false for a new Bucket.
+// Tests that IsLocked returns false for a new Bucket.
 func TestBucket_IsLocked(t *testing.T) {
 	// Create new Bucket
 	b := CreateBucketFromLeakRatio(rand.Uint32(), rand.Float64(), nil)
 
 	if b.IsLocked() {
-		t.Errorf("IsLocked() returned incorrect locked status."+
-			"\n\texpected: %v\n\treceived: %v", false, b.IsLocked())
+		t.Errorf("IsLocked returned incorrect locked status."+
+			"\nexpected: %t\nreceived: %t", false, b.IsLocked())
 	}
 }
 
-// Tests that Bucket.IsWhitelisted() returns false for a new Bucket.
+// Tests that Bucket.IsWhitelisted returns false for a new Bucket.
 func TestBucket_IsWhitelisted(t *testing.T) {
 	// Create new Bucket
 	b := CreateBucketFromLeakRatio(rand.Uint32(), rand.Float64(), nil)
 
 	if b.IsWhitelisted() {
-		t.Errorf("IsWhitelisted() returned incorrect whitelist status."+
-			"\n\texpected: %v\n\treceived: %v", false, b.IsWhitelisted())
+		t.Errorf("IsWhitelisted returned incorrect whitelist status."+
+			"\nexpected: %t\nreceived: %t", false, b.IsWhitelisted())
 	}
 }
 
-// Tests that Bucket.IsFull() returns false for a new Bucket and true for a
+// Tests that Bucket.IsFull returns false for a new Bucket and true for a
 // filled bucket.
 func TestBucket_IsFull(t *testing.T) {
 	// Create new Bucket
 	b := CreateBucketFromLeakRatio(rand.Uint32()/2, rand.Float64(), nil)
 
 	if b.IsFull() {
-		t.Errorf("IsFull() returned incorrect value for new bucket."+
-			"\n\texpected: %v\n\treceived: %v", false, b.IsFull())
+		t.Errorf("IsFull returned incorrect value for new bucket."+
+			"\nexpected: %t\nreceived: %t", false, b.IsFull())
 	}
 
 	b.Add(b.capacity * 2)
 
 	if !b.IsFull() {
-		t.Errorf("IsFull() returned incorrect value for a filled bucket."+
-			"\n\texpected: %v\n\treceived: %v", true, b.IsFull())
+		t.Errorf("IsFull returned incorrect value for a filled bucket."+
+			"\nexpected: %t\nreceived: %t", true, b.IsFull())
 	}
 }
 
-// Tests that Bucket.IsEmpty() returns true for a new Bucket and false for a
+// Tests that Bucket.IsEmpty returns true for a new Bucket and false for a
 // filled bucket.
 func TestBucket_IsEmpty(t *testing.T) {
 	// Create new Bucket
 	b := CreateBucketFromLeakRatio(rand.Uint32(), rand.Float64(), nil)
 
 	if !b.IsEmpty() {
-		t.Errorf("IsEmpty() returned incorrect value for new bucket."+
-			"\n\texpected: %v\n\treceived: %v", true, b.IsFull())
+		t.Errorf("IsEmpty returned incorrect value for new bucket."+
+			"\nexpected: %t\nreceived: %t", true, b.IsFull())
 	}
 
 	b.Add(b.capacity / 2)
 
 	if b.IsEmpty() {
-		t.Errorf("IsEmpty() returned incorrect value for a filled bucket."+
-			"\n\texpected: %v\n\treceived: %v", false, b.IsEmpty())
+		t.Errorf("IsEmpty returned incorrect value for a filled bucket."+
+			"\nexpected: %t\nreceived: %t", false, b.IsEmpty())
 	}
 }
 
-// Bucket.Add() happy path.
+// Bucket.Add happy path.
 func TestBucket_Add(t *testing.T) {
 	// Generate test data
 	testData := []struct {
@@ -248,20 +247,19 @@ func TestBucket_Add(t *testing.T) {
 	for i, r := range testData {
 		time.Sleep(r.sleepTime * duration)
 
-		if succes, _ := b.Add(r.tokensToAdd); !succes {
+		if success, _ := b.Add(r.tokensToAdd); !success {
 			t.Errorf("Add(%d) added tokens past bucket capacity (round %d). "+
 				"[cap: %d, rem: %d]", r.tokensToAdd, i, b.capacity, b.remaining)
 		}
 
 		if b.remaining != r.expectedRem {
 			t.Errorf("Incorrect number of tokens remaining in bucket (round %d)."+
-				"\n\texpected: %v\n\treceived: %v",
-				i, r.expectedRem, b.remaining)
+				"\nexpected: %d\nreceived: %d", i, r.expectedRem, b.remaining)
 		}
 	}
 }
 
-// Tests that Bucket.Add() returns false when adding tokens over capacity.
+// Tests that Bucket.Add returns false when adding tokens over capacity.
 func TestBucket_Add_OverCapacity(t *testing.T) {
 	// Generate test data
 	testData := []struct {
@@ -292,12 +290,12 @@ func TestBucket_Add_OverCapacity(t *testing.T) {
 
 		if b.remaining != r.expectedRem {
 			t.Errorf("Incorrect number of tokens remaining in bucket (round %d)."+
-				"\n\texpected: %v\n\treceived: %v", i, r.expectedRem, b.remaining)
+				"\nexpected: %d\nreceived: %d", i, r.expectedRem, b.remaining)
 		}
 	}
 }
 
-// Tests that Bucket.Add() updates the database bucket when it is enabled.
+// Tests that Bucket.Add updates the database bucket when it is enabled.
 func TestBucket_Add_DB(t *testing.T) {
 	// Generate test data
 	testData := []struct {
@@ -317,7 +315,7 @@ func TestBucket_Add_DB(t *testing.T) {
 	b := CreateBucketFromLeakRatio(10, leakRate, nil)
 
 	// Set up mock bucket database with addToDb function
-	bucketDB := &BucketParams{
+	db := &BucketParams{
 		Key:        "keyA",
 		Capacity:   b.capacity,
 		Remaining:  b.remaining,
@@ -327,9 +325,9 @@ func TestBucket_Add_DB(t *testing.T) {
 		Whitelist:  b.whitelist,
 	}
 
-	b.addToDb = func(remaining uint32, lastUpdate int64) {
-		bucketDB.Remaining = remaining
-		bucketDB.LastUpdate = lastUpdate
+	b.updateDB = func(remaining uint32, lastUpdate int64) {
+		db.Remaining = remaining
+		db.LastUpdate = lastUpdate
 	}
 
 	// Add expected values and test
@@ -343,25 +341,23 @@ func TestBucket_Add_DB(t *testing.T) {
 
 		if b.remaining != r.expectedRem {
 			t.Errorf("Incorrect number of tokens remaining in bucket (round %d)."+
-				"\n\texpected: %v\n\treceived: %v",
-				i, r.expectedRem, b.remaining)
+				"\nexpected: %d\nreceived: %d", i, r.expectedRem, b.remaining)
 		}
 
-		if b.remaining != bucketDB.Remaining {
-			t.Errorf("Incorrect number of tokens remaining in database bucket (round %d)."+
-				"\n\texpected: %v\n\treceived: %v",
-				i, b.remaining, bucketDB.Remaining)
+		if b.remaining != db.Remaining {
+			t.Errorf("Incorrect number of tokens remaining in database bucket "+
+				"(round %d).\nexpected: %d\nreceived: %d",
+				i, b.remaining, db.Remaining)
 		}
 
-		if b.lastUpdate != bucketDB.LastUpdate {
+		if b.lastUpdate != db.LastUpdate {
 			t.Errorf("Incorrect LastUpdate in database bucket (round %d)."+
-				"\n\texpected: %v\n\treceived: %v",
-				i, b.lastUpdate, bucketDB.LastUpdate)
+				"\nexpected: %d\nreceived: %d", i, b.lastUpdate, db.LastUpdate)
 		}
 	}
 }
 
-// Tests that Bucket.Add() always returns true for a whitelisted bucket.
+// Tests that Bucket.Add always returns true for a whitelisted bucket.
 func TestBucket_Add_Whitelist(t *testing.T) {
 	// Generate test data
 	testData := []struct {
@@ -392,13 +388,12 @@ func TestBucket_Add_Whitelist(t *testing.T) {
 
 		if b.remaining != r.expectedRem {
 			t.Errorf("Incorrect number of tokens remaining in bucket (round %d)."+
-				"\n\texpected: %v\n\treceived: %v",
-				i, r.expectedRem, b.remaining)
+				"\nexpected: %d\nreceived: %d", i, r.expectedRem, b.remaining)
 		}
 	}
 }
 
-// Tests that Bucket.Add() is thread safe.
+// Tests that Bucket.Add is thread safe.
 func TestAdd_ThreadSafe(t *testing.T) {
 	b := CreateBucketFromLeakRatio(10, 1, nil)
 	result := make(chan bool)
@@ -413,7 +408,7 @@ func TestAdd_ThreadSafe(t *testing.T) {
 
 	select {
 	case <-result:
-		t.Errorf("Add() did not correctly lock the thread.")
+		t.Errorf("Add did not correctly lock the thread.")
 	case <-time.After(50 * time.Millisecond):
 		return
 	}
@@ -447,7 +442,7 @@ func TestBucket_addToDB(t *testing.T) {
 	b2.SetAddToDB(func(u uint32, i int64) {
 		called = true
 	})
-	b2.addToDb(0, 0)
+	b2.updateDB(0, 0)
 	if !called {
 		t.Error("addToDb should have been called")
 	}

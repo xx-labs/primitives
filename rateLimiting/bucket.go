@@ -1,10 +1,11 @@
-////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                                       //
-//                                                                                        //
-// Use of this source code is governed by a license that can be found in the LICENSE file //
-////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
-// An implementation of the leaky bucket algorithm:
+// Package rateLimiting implements the leaky bucket algorithm:
 // https://en.wikipedia.org/wiki/Leaky_bucket
 package rateLimiting
 
@@ -13,6 +14,10 @@ import (
 	"sync"
 	"time"
 )
+
+// UpdateDB updates the bucket in the database with the remaining tokens and
+// the last update (in unix nano time).
+type UpdateDB func(remaining uint32, lastUpdate int64)
 
 // Bucket structure tracks the capacity and rate at which the remaining buckets
 // decrease.
@@ -27,12 +32,12 @@ type Bucket struct {
 
 	// Updates the remaining amount in database bucket. Leave value as nil if
 	// the database is not being used.
-	addToDb func(uint32, int64)
+	updateDB UpdateDB
 }
 
 // CreateBucket generates a new empty bucket.
 func CreateBucket(capacity, leaked uint32, leakDuration time.Duration,
-	addToDb func(uint32, int64)) *Bucket {
+	addToDb UpdateDB) *Bucket {
 
 	// Calculate the leak rate [tokens/nanosecond]
 	leakRate := calculateLeakRate(leaked, leakDuration)
@@ -47,7 +52,7 @@ func calculateLeakRate(leaked uint32, leakedDuration time.Duration) float64 {
 
 // CreateBucketFromLeakRatio generates a new empty bucket.
 func CreateBucketFromLeakRatio(capacity uint32, leakRate float64,
-	addToDb func(uint32, int64)) *Bucket {
+	updateDB UpdateDB) *Bucket {
 	return &Bucket{
 		capacity:   capacity,
 		remaining:  0,
@@ -55,13 +60,12 @@ func CreateBucketFromLeakRatio(capacity uint32, leakRate float64,
 		lastUpdate: time.Now().UnixNano(),
 		locked:     false,
 		whitelist:  false,
-		addToDb:    addToDb,
+		updateDB:   updateDB,
 	}
 }
 
-// CreateBucketFromLeakRatio generates a new empty bucket.
-func CreateBucketFromParams(params *BucketParams,
-	addToDb func(uint32, int64)) *Bucket {
+// CreateBucketFromParams generates a new empty bucket from custom parameters.
+func CreateBucketFromParams(params *BucketParams, updateDB UpdateDB) *Bucket {
 	return &Bucket{
 		capacity:   params.Capacity,
 		remaining:  params.Remaining,
@@ -69,13 +73,13 @@ func CreateBucketFromParams(params *BucketParams,
 		lastUpdate: params.LastUpdate,
 		locked:     params.Locked,
 		whitelist:  params.Whitelist,
-		addToDb:    addToDb,
+		updateDB:   updateDB,
 	}
 }
 
 // CreateBucketFromDB creates a bucket from parameters of a stored Bucket.
 func CreateBucketFromDB(capacity, leaked uint32, leakDuration time.Duration,
-	inBucket uint32, timestamp int64, addToDb func(uint32, int64)) *Bucket {
+	inBucket uint32, timestamp int64, updateDB UpdateDB) *Bucket {
 	return &Bucket{
 		capacity:   capacity,
 		remaining:  inBucket,
@@ -83,7 +87,7 @@ func CreateBucketFromDB(capacity, leaked uint32, leakDuration time.Duration,
 		lastUpdate: timestamp,
 		locked:     false,
 		whitelist:  false,
-		addToDb:    addToDb,
+		updateDB:   updateDB,
 	}
 }
 
@@ -119,8 +123,8 @@ func (b *Bucket) IsFull() bool {
 	return b.remaining >= b.capacity
 }
 
-// IsFullOrWhitelist returns true if the bucket is overflowing (i.e. no remaining capacity
-// for additional tokens) or if the bucket is whitelisted.
+// IsFullOrWhitelist returns true if the bucket is overflowing (i.e., no
+// remaining capacity for additional tokens) or if the bucket is whitelisted.
 func (b *Bucket) IsFullOrWhitelist() bool {
 	b.Lock()
 	defer b.Unlock()
@@ -156,8 +160,8 @@ func (b *Bucket) Add(tokens uint32) (bool, bool) {
 	b.remaining += tokens
 
 	// If using the database, then update the remaining in the database bucket
-	if b.addToDb != nil {
-		b.addToDb(b.remaining, b.lastUpdate)
+	if b.updateDB != nil {
+		b.updateDB(b.remaining, b.lastUpdate)
 	}
 
 	// If the tokens went over capacity, then return false, unless the bucket is
@@ -165,10 +169,10 @@ func (b *Bucket) Add(tokens uint32) (bool, bool) {
 	return b.whitelist || b.remaining <= b.capacity, b.whitelist
 }
 
-// AddWithExternalParams adds the specified number of tokens to the bucket given external
-// bucket parameters rather than the params specified in the bucket.
-// Returns true if the tokens were added; otherwise, returns false if there was insufficient
-// capacity to do so.
+// AddWithExternalParams adds the specified number of tokens to the bucket given
+// external bucket parameters rather than the params specified in the bucket.
+// Returns true if the tokens were added; otherwise, returns false if there was
+// insufficient capacity to do so.
 func (b *Bucket) AddWithExternalParams(tokens, capacity, leakedTokens uint32,
 	duration time.Duration) (bool, bool) {
 	b.Lock()
@@ -181,8 +185,8 @@ func (b *Bucket) AddWithExternalParams(tokens, capacity, leakedTokens uint32,
 	b.remaining += tokens
 
 	// If using the database, then update the remaining in the database bucket
-	if b.addToDb != nil {
-		b.addToDb(b.remaining, b.lastUpdate)
+	if b.updateDB != nil {
+		b.updateDB(b.remaining, b.lastUpdate)
 	}
 
 	// If the tokens went over capacity, then return false, unless the bucket is
@@ -203,8 +207,8 @@ func (b *Bucket) AddWithoutOverflow(tokens uint32) (bool, bool) {
 	b.remaining += tokens
 
 	// If using the database, then update the remaining in the database bucket
-	if b.addToDb != nil {
-		b.addToDb(b.remaining, b.lastUpdate)
+	if b.updateDB != nil {
+		b.updateDB(b.remaining, b.lastUpdate)
 	}
 
 	// If the tokens went over capacity, then return false, unless the bucket is
@@ -238,14 +242,17 @@ func (b *Bucket) update(leakRate float64) {
 // AddToDB isn't meaningfully serializable, so if necessary it should be
 // populated after the fact
 type bucketDisk struct {
-	Capacity   uint32  // Maximum number of tokens the bucket can hold
-	Remaining  uint32  // Current number of tokens in the bucket
-	LeakRate   float64 // Rate that the bucket leaks tokens at [tokens/ns]
-	LastUpdate int64   // Time that the bucket was most recently updated
-	Locked     bool    // When true, prevents bucket from being deleted when stale
-	Whitelist  bool    // When true, adding tokens always returns true
+	Capacity   uint32  `json:"capacity"`
+	Remaining  uint32  `json:"remaining"`
+	LeakRate   float64 `json:"leakRate"`
+	LastUpdate int64   `json:"lastUpdate"`
+	Locked     bool    `json:"locked"`
+	Whitelist  bool    `json:"whitelist"`
 }
 
+// MarshalJSON marshals the [Bucket] into valid JSON. This function adheres to
+// the [json.Marshaler] interface. Note: it does not include the database
+// function.
 func (b *Bucket) MarshalJSON() ([]byte, error) {
 	b.Lock()
 	defer b.Unlock()
@@ -259,7 +266,9 @@ func (b *Bucket) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// Problem: Doesn't include db func
+// UnmarshalJSON unmarshalls the JSON into the [Bucket]. This function adheres
+// to the [json.Unmarshaler] interface. Note: it does not include the database
+// function; call [Bucket.SetAddToDB] to add it.
 func (b *Bucket) UnmarshalJSON(data []byte) error {
 	var bd bucketDisk
 	err := json.Unmarshal(data, &bd)
@@ -278,9 +287,10 @@ func (b *Bucket) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// This function should be called after unmarshalling if you need a db function
-func (b *Bucket) SetAddToDB(dbFunc func(uint32, int64)) {
+// SetAddToDB should be called after unmarshalling if you need a database
+// function.
+func (b *Bucket) SetAddToDB(updateDB UpdateDB) {
 	b.Lock()
-	b.addToDb = dbFunc
+	b.updateDB = updateDB
 	b.Unlock()
 }

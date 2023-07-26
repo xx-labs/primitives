@@ -1,20 +1,32 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
+
 package region
 
 import (
 	"encoding/binary"
-	"github.com/pkg/errors"
-	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/xx_network/primitives/id"
 	"io"
 	"math"
+
+	"github.com/pkg/errors"
+	jww "github.com/spf13/jwalterweatherman"
+
+	"gitlab.com/xx_network/primitives/id"
 )
 
-func OrderNodeTeam(nodes []*id.ID, countries map[id.ID]string, countryToBins map[string]GeoBin, distanceLatency [12][12]int, rng io.Reader) ([]*id.ID, int, error) {
+func OrderNodeTeam(nodes []*id.ID, countries map[id.ID]string,
+	countryToBins map[string]GeoBin, distanceLatency [12][12]int,
+	rng io.Reader) ([]*id.ID, int, error) {
 	// Make all permutations of nodePermutation
 	permutations := Permute(nodes)
 	jww.DEBUG.Printf("Looking for most efficient teaming order")
 	optimalLatency := math.MaxInt32
 	var optimalTeams [][]*id.ID
+
 	// TODO: consider a way to do this more efficiently? As of now,
 	//  for larger teams of 10 or greater it takes >2 seconds for round creation
 	//  but it runs in the microsecond range with 4 nodePermutation.
@@ -27,22 +39,27 @@ func OrderNodeTeam(nodes []*id.ID, countries map[id.ID]string, countryToBins map
 			// Get the ordering for the current node
 			thisCounty, ok := countries[*thisNode]
 			if !ok {
-				return nil, 0, errors.Errorf("Unable to locate country for node %s: %v", thisNode, countries)
+				return nil, 0, errors.Errorf("Unable to locate country for "+
+					"node %s: %v", thisNode, countries)
 			}
 			thisRegion, ok := countryToBins[thisCounty]
 			if !ok {
-				return nil, 0, errors.Errorf("Unable to locate bin for node %s at country %s", thisNode, thisCounty)
+				return nil, 0, errors.Errorf("Unable to locate bin for "+
+					"node %s at country %s", thisNode, thisCounty)
 			}
 
-			// Get the ordering of the next node, circling back if at the last node
+			// Get the ordering of the next node, circling back if at the last
+			// node
 			nextNode := nodePermutation[(i+1)%len(nodePermutation)]
 			nextCounty, ok := countries[*nextNode]
 			if !ok {
-				return nil, 0, errors.Errorf("Unable to locate country for node %s: %v", nextCounty, countries)
+				return nil, 0, errors.Errorf("Unable to locate country for "+
+					"node %s: %v", nextCounty, countries)
 			}
 			nextRegion, ok := countryToBins[nextCounty]
 			if !ok {
-				return nil, 0, errors.Errorf("Unable to locate bin for node %s at country %s", nextNode, nextCounty)
+				return nil, 0, errors.Errorf("Unable to locate bin for "+
+					"node %s at country %s", nextNode, nextCounty)
 			}
 			// Calculate the distance and pull the latency from the table
 			totalLatency += distanceLatency[thisRegion][nextRegion]
@@ -70,14 +87,16 @@ func OrderNodeTeam(nodes []*id.ID, countries map[id.ID]string, countryToBins map
 	return optimalTeams[index], optimalLatency, nil
 }
 
-// Creates a latency table which maps different regions latencies to all
-// other defined regions. Latency is derived through educated guesses right now
-// without any real world data.
-// todo: table needs better real-world accuracy. Once data is collected
-//  this table can be updated for better accuracy and selection
+// CreateLinkTable creates a latency table that maps different region's
+// latencies to all other defined regions. Latency is derived through educated
+// guesses right now without any real world data.
+//
+// TODO: This table needs better real-world accuracy. Once data is collected
+//
+//	this table can be updated for better accuracy and selection.
 func CreateLinkTable() (distanceLatency [12][12]int) {
 
-	// number of hops on the graph from region.Americas to other regions
+	// Number of hops on the graph from region.Americas to other regions
 	distanceLatency[NorthAmerica][NorthAmerica] = 0
 	distanceLatency[NorthAmerica][SouthAndCentralAmerica] = 1
 	distanceLatency[NorthAmerica][WesternEurope] = 2

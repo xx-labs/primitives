@@ -1,17 +1,18 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                           //
+// Copyright © 2022 xx foundation                                             //
 //                                                                            //
 // Use of this source code is governed by a license that can be found in the  //
-// LICENSE file                                                               //
+// LICENSE file.                                                              //
 ////////////////////////////////////////////////////////////////////////////////
 
 package utils
 
 import (
-	"github.com/pkg/errors"
 	"net"
 	"strconv"
 	"unicode/utf8"
+
+	"github.com/pkg/errors"
 )
 
 // Maximum and Minimum lengths.
@@ -183,7 +184,8 @@ func IsDomainName(address string) error {
 	case l == len(address):
 		return errors.Errorf(dnTldEndPeriodErr)
 	case len(address)-l > 63:
-		return errors.Errorf(dnTldMaxLenErr, address[l:], len(address)-l, topLevelMaxLen)
+		return errors.Errorf(dnTldMaxLenErr,
+			address[l:], len(address)-l, topLevelMaxLen)
 	case address[l] == '-':
 		return errors.Errorf(dnTldStartHyphenErr, address[l:], l)
 	case address[len(address)-1] == '-':
@@ -209,14 +211,14 @@ func IsIPv6(address string) bool {
 	return ip != nil && ip.To4() == nil
 }
 
-// IsIP determines if the given string is is a valid IP address. Ports are
-// allowed; if a port is present, then it is stripped.
+// IsIP determines if the given string is a valid IP address. Ports are allowed;
+// if a port is present, then it is stripped.
 func IsIP(address string) bool {
 	return ParseIP(address) != nil
 }
 
 // IsPublicIP determines if the given string is a valid public IP address. The
-// IP address address may include a port. If the IP is invalid, then an error is
+// IP address may include a port. If the IP is invalid, then an error is
 // returned specifying the reason. Otherwise, it returns nil. Ports are allowed;
 // if a port is present, then it is stripped.
 func IsPublicIP(address string) error {

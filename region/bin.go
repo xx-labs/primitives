@@ -1,10 +1,18 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
+
 package region
 
 import (
 	"encoding/json"
-	"github.com/pkg/errors"
 	"math"
 	"strconv"
+
+	"github.com/pkg/errors"
 )
 
 // GeoBin is the numerical representation of a geographical regional.

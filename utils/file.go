@@ -1,22 +1,24 @@
-////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                                       //
-//                                                                                        //
-// Use of this source code is governed by a license that can be found in the LICENSE file //
-////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 // Package utils contains general utility functions used by our system.
 // They are generic and perform basic tasks. As of writing, it mostly contains
-// file IO functions to make our system be able file IO independent of platform
-// as well as domain and IP validation.
+// file IO functions to make our system be able to file IO independent of
+// platform as well as domain and IP validation.
 
 package utils
 
 import (
-	"github.com/mitchellh/go-homedir"
-	"github.com/pkg/errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
+
+	"github.com/mitchellh/go-homedir"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -29,15 +31,15 @@ const (
 
 // ExpandPath replaces the '~' character with the user's home directory and
 // cleans the path using the following rules:
-//	1. Replace multiple Separator elements with a single one.
-//	2. Eliminate each . path name element (the current directory).
-//	3. Eliminate each inner .. path name element (the parent directory)
-//	   along with the non-.. element that precedes it.
-//	4. Eliminate .. elements that begin a rooted path: that is, replace
-//	   "/.." by "/" at the beginning of a path, assuming Separator is '/'.
-//	5. The returned path ends in a slash only if it represents a root
-//	   directory.
-//	6. Any occurrences of slash are replaced by Separator.
+//  1. Replace multiple Separator elements with a single one.
+//  2. Eliminate each . path name element (the current directory).
+//  3. Eliminate each inner .. path name element (the parent directory)
+//     along with the non-.. element that precedes it.
+//  4. Eliminate .. elements that begin a rooted path: that is, replace
+//     "/.." by "/" at the beginning of a path, assuming Separator is '/'.
+//  5. The returned path ends in a slash only if it represents a root
+//     directory.
+//  6. Any occurrences of slash are replaced by Separator.
 func ExpandPath(path string) (string, error) {
 	// If the path is empty, then return nothing
 	if path == "" {
@@ -79,7 +81,7 @@ func MakeDirs(path string, perm os.FileMode) error {
 	return mkdirAll(path, perm)
 }
 
-// WriteFile creates any directories in the path that do not exists and write
+// WriteFile creates any directories in the path that do not exist and write
 // the specified data to the file.
 func WriteFile(path string, data []byte, filePerm, dirPerm os.FileMode) error {
 	// Expand '~' to user's home directory and clean the path
@@ -88,18 +90,18 @@ func WriteFile(path string, data []byte, filePerm, dirPerm os.FileMode) error {
 		return err
 	}
 
-	// Make an directories in the path that do not already exist
+	// Make directories in the path that do not already exist
 	err = mkdirAll(path, dirPerm)
 	if err != nil {
 		return err
 	}
 
 	// Write to the specified file
-	err = ioutil.WriteFile(path, data, filePerm)
+	err = os.WriteFile(path, data, filePerm)
 	return err
 }
 
-// WriteFileDef creates any directories in the path that do not exists and write
+// WriteFileDef creates any directories in the path that do not exist and write
 // the specified data to the file using the default file and directory
 // permissions.
 func WriteFileDef(path string, data []byte) error {
@@ -116,7 +118,7 @@ func ReadFile(path string) ([]byte, error) {
 	}
 
 	// Read the file and return the contents
-	return ioutil.ReadFile(path)
+	return os.ReadFile(path)
 }
 
 // Exists checks if a file or directory exists at the specified path.
@@ -152,6 +154,35 @@ func DirExists(path string) bool {
 	return exists && info.IsDir()
 }
 
+// GetLastModified returns the time the file was last modified.
+func GetLastModified(path string) (time.Time, error) {
+	// Get file description information and path errors
+	info, err := os.Stat(path)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return info.ModTime(), nil
+}
+
+// ReadDir reads the named directory, returning all its directory entries
+// sorted by filename.
+func ReadDir(path string) ([]string, error) {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+
+	files := make([]string, 0)
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			files = append(files, entry.Name())
+		}
+	}
+
+	return files, nil
+}
+
 // exists checks if a file or directory exists at the specified path and also
 // returns the file's FileInfo.
 func exists(path string) (os.FileInfo, bool) {
@@ -174,8 +205,9 @@ func exists(path string) (os.FileInfo, bool) {
 // blank and an error is returned.
 //
 // Note that defaultDirectory MUST be a relative path. By default, when checking
-// the home directory a "." is prepended the to defaultDirectory.
-func SearchDefaultLocations(defaultFileName string, defaultDirectory string) (string, error) {
+// the home directory, a "." is prepended to the defaultDirectory.
+func SearchDefaultLocations(
+	defaultFileName string, defaultDirectory string) (string, error) {
 	// Get the user's home directory
 	defaultDirs, err := getDefaultSearchDirs(defaultDirectory)
 	if err != nil {

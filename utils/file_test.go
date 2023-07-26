@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                                       //
-//                                                                                        //
-// Use of this source code is governed by a license that can be found in the LICENSE file //
-////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 // Contains utility operations used throughout the repo
 
@@ -12,17 +13,20 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/mitchellh/go-homedir"
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"testing"
 	"time"
+
+	"github.com/mitchellh/go-homedir"
+	"github.com/stretchr/testify/require"
 )
 
 const sep = string(filepath.Separator)
 
-// Tests that ExpandPath properly expands the the "~" character.
+// Tests that ExpandPath properly expands the "~" character.
 func TestExpandPath_Happy(t *testing.T) {
 	path := sep + "test123" + sep + "test.txt"
 	testPath := "~" + path
@@ -92,7 +96,7 @@ func TestMkdirAll(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %v", path, err)
 		}
 	}()
 
@@ -102,8 +106,7 @@ func TestMkdirAll(t *testing.T) {
 	}
 
 	if _, err = os.Stat(filepath.Dir(path)); os.IsExist(err) {
-		t.Errorf("mkdirAll did not correctly make the directories:"+
-			"\n\t%s", path)
+		t.Errorf("mkdirAll did not correctly make the directories: %s", path)
 	}
 }
 
@@ -116,7 +119,7 @@ func TestMkdirAll_DirectoryPath(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %v", path, err)
 		}
 	}()
 
@@ -126,8 +129,7 @@ func TestMkdirAll_DirectoryPath(t *testing.T) {
 	}
 
 	if _, err = os.Stat(filepath.Dir(path)); os.IsExist(err) {
-		t.Errorf("mkdirAll did not correctly make the directories:"+
-			"\n\t%s", path)
+		t.Errorf("mkdirAll did not correctly make the directories: %s", path)
 	}
 }
 
@@ -139,7 +141,7 @@ func TestMkdirAll_EmptyPath(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %v", path, err)
 		}
 	}()
 
@@ -149,8 +151,7 @@ func TestMkdirAll_EmptyPath(t *testing.T) {
 	}
 
 	if _, err = os.Stat(filepath.Dir(path)); os.IsExist(err) {
-		t.Errorf("mkdirAll did not correctly make the directories:"+
-			"\n\t%s", path)
+		t.Errorf("mkdirAll did not correctly make the directories: %s", path)
 	}
 }
 
@@ -162,7 +163,7 @@ func TestMakeDirs(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %+v", path, err)
 		}
 	}()
 
@@ -172,8 +173,7 @@ func TestMakeDirs(t *testing.T) {
 	}
 
 	if _, err = os.Stat(filepath.Dir(path)); os.IsExist(err) {
-		t.Errorf("MakeDirs did not correctly make the directories:"+
-			"\n\t%s", path)
+		t.Errorf("MakeDirs did not correctly make the directories: %s", path)
 	}
 }
 
@@ -185,7 +185,7 @@ func TestMakeDirs_PathError(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %+v", path, err)
 		}
 	}()
 
@@ -208,7 +208,7 @@ func TestWriteFile(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll("temp/")
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", "temp/", err)
+			t.Fatalf("Error deleting test file %q: %+v", "temp/", err)
 		}
 	}()
 
@@ -223,8 +223,7 @@ func TestWriteFile(t *testing.T) {
 	}
 
 	if _, err = os.Stat(path); os.IsExist(err) {
-		t.Errorf("WriteFile did not correctly make the directories:"+
-			"\n\t%s", path)
+		t.Errorf("WriteFile did not correctly make the directories: %s", path)
 	}
 }
 
@@ -237,7 +236,7 @@ func TestWriteFile_PathError(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %+v", path, err)
 		}
 	}()
 
@@ -260,7 +259,7 @@ func TestWriteFileDef(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll("temp/")
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", "temp/", err)
+			t.Fatalf("Error deleting test file %q: %+v", "temp/", err)
 		}
 	}()
 
@@ -275,8 +274,7 @@ func TestWriteFileDef(t *testing.T) {
 	}
 
 	if _, err = os.Stat(path); os.IsExist(err) {
-		t.Errorf("WriteFileDef did not correctly make the directories:"+
-			"\n\t%s", path)
+		t.Errorf("WriteFileDef did not correctly make the directories: %s", path)
 	}
 }
 
@@ -290,7 +288,7 @@ func TestReadFile(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %+v", path, err)
 		}
 	}()
 
@@ -331,7 +329,7 @@ func TestExist(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %+v", path, err)
 		}
 	}()
 
@@ -354,7 +352,7 @@ func TestExist_Dir(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %+v", path, err)
 		}
 	}()
 
@@ -377,7 +375,7 @@ func TestExist_NoFileError(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %+v", path, err)
 		}
 	}()
 
@@ -396,7 +394,7 @@ func TestFileExists(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %+v", path, err)
 		}
 	}()
 
@@ -419,7 +417,7 @@ func TestFileExists_DirError(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %+v", path, err)
 		}
 	}()
 
@@ -441,7 +439,7 @@ func TestFileExists_NoFileError(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %+v", path, err)
 		}
 	}()
 
@@ -459,7 +457,7 @@ func TestDirExists(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %+v", path, err)
 		}
 	}()
 
@@ -483,7 +481,7 @@ func TestDirExists_FileError(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %+v", path, err)
 		}
 	}()
 
@@ -506,7 +504,7 @@ func TestDirExists_NoDirError(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %+v", path, err)
 		}
 	}()
 
@@ -514,6 +512,99 @@ func TestDirExists_NoDirError(t *testing.T) {
 	if exists {
 		t.Errorf("DirExists found a directroy when one does not exist")
 	}
+}
+
+// Tests that GetLastModified will return an accurate last modified timestamp.
+func TestGetLastModified(t *testing.T) {
+	path := "test.txt"
+	data := []byte("Test string.")
+
+	// Delete the test file at the end
+	defer func() {
+		require.NoError(t, os.RemoveAll(path))
+
+	}()
+
+	// Record approximately when we are writing to file
+	firstWriteTimestamp := time.Now()
+
+	// Write to file
+	require.NoError(t, WriteFile(path, data, FilePerms, FilePerms))
+
+	// Retrieve the last modification of the file
+	lastModified, err := GetLastModified(path)
+	require.NoError(t, err)
+
+	// The last modified timestamp should not differ by more than a few
+	// milliseconds from the timestamp taken before the write operation took
+	// place.
+	require.True(t, lastModified.Sub(firstWriteTimestamp) < 2*time.Millisecond ||
+		lastModified.Sub(firstWriteTimestamp) > 2*time.Millisecond)
+
+	// Retrieve modified timestamp again
+	newLastModified, err := GetLastModified(path)
+	require.NoError(t, err)
+
+	// Ensure last modified does not change arbitrarily
+	require.Equal(t, newLastModified, lastModified)
+}
+
+// ReadDir unit test.
+func TestReadDir(t *testing.T) {
+	files, err := ReadDir("./")
+	require.NoError(t, err)
+
+	// NOTE: This test uses the files in the utils package as expected values.
+	//       If at any point files are added or moved, refactor this list
+	//       accordingly.
+	var expectedFiles = []string{"gen.go", "net.go", "net_test.go",
+		"privNet.go", "file.go", "file_test.go"}
+	sort.Strings(expectedFiles)
+
+	require.Equal(t, expectedFiles, files)
+}
+
+// Tests that GetLastModified will update after a write operation to a file.
+func TestGetLastModified_Update(t *testing.T) {
+
+	path := "test.txt"
+	data := []byte("Test string.")
+
+	// Delete the test file at the end
+	defer func() {
+		require.NoError(t, os.RemoveAll(path))
+
+	}()
+
+	// Write to file
+	require.NoError(t, WriteFile(path, data, FilePerms, FilePerms))
+
+	// Retrieve the last modification of the file
+	lastModified, err := GetLastModified(path)
+	require.NoError(t, err)
+
+	time.Sleep(50 * time.Millisecond)
+
+	// Record timestamp of second write
+	secondWriteTimestamp := time.Now()
+
+	// Write again to the same file path
+	newData := []byte("New data")
+	require.NoError(t, WriteFile(path, newData, FilePerms, FilePerms))
+
+	// Retrieve last modified after re-writing to file
+	newLastModified, err := GetLastModified(path)
+	require.NoError(t, err)
+
+	// Ensure last modified has been updated, and is not returning an old value
+	require.NotEqual(t, newLastModified, lastModified)
+
+	// The last modified timestamp should not differ by more than a few
+	// milliseconds from the timestamp taken before the write operation took
+	// place.
+	require.True(t, lastModified.Sub(secondWriteTimestamp) < 2*time.Millisecond ||
+		lastModified.Sub(secondWriteTimestamp) > 2*time.Millisecond)
+
 }
 
 // Tests that Test_exist correctly finds a file that exists and returns the
@@ -526,7 +617,7 @@ func Test_exist(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll(path)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", path, err)
+			t.Fatalf("Error deleting test file %q: %+v", path, err)
 		}
 	}()
 
@@ -539,8 +630,7 @@ func Test_exist(t *testing.T) {
 	expectedInfo, err := os.Stat(path)
 
 	if !exists && err != nil {
-		t.Errorf("exists did not find a file that should exist:"+
-			"\n\t%v", err)
+		t.Errorf("exists did not find a file that should exist: %v", err)
 	} else if !exists {
 		t.Errorf("exists did not find a file that should exist")
 	}
@@ -576,24 +666,24 @@ func TestSearchDefaultLocations(t *testing.T) {
 	testPath := testDir + testFile
 	expectedPath, err := ExpandPath("~/." + testPath)
 	if err != nil {
-		t.Fatalf("ExpandPath() failed to exapnd the path %s: %+v", testPath, err)
+		t.Fatalf("ExpandPath failed to exapnd the path %s: %+v", testPath, err)
 	}
 	expectedDir, err := ExpandPath("~/" + testDir)
 	if err != nil {
-		t.Fatalf("ExpandPath() failed to exapnd the path %s: %+v", testPath, err)
+		t.Fatalf("ExpandPath failed to exapnd the path %s: %+v", testPath, err)
 	}
 
 	// Delete the test file at the end
 	defer func() {
 		err := os.RemoveAll(expectedDir)
 		if err != nil {
-			t.Fatalf("Error deleting test file %#v:\n%v", expectedDir, err)
+			t.Fatalf("Error deleting test file %q: %+v", expectedDir, err)
 		}
 	}()
 
 	err = WriteFile(expectedPath, []byte("TEST"), FilePerms, DirPerms)
 	if err != nil {
-		t.Fatalf("WriteFile() failed to create file %s: %+v", testPath, err)
+		t.Fatalf("WriteFile failed to create file %s: %+v", testPath, err)
 	}
 
 	foundPath, err := SearchDefaultLocations(testFile, testDir)

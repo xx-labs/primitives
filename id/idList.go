@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                                       //
-//                                                                                        //
-// Use of this source code is governed by a license that can be found in the LICENSE file //
-////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package id
 
@@ -10,20 +11,19 @@ import "github.com/pkg/errors"
 
 // idList.go handles operations that create a list of id.ID objects.
 
-// NewIDListFromBytes creates a list of IDs from a list of byte slices. On
-// success, it returns a new list. On failure, it returns a nil list and an
-// error.
+// NewIDListFromBytes creates a list of id.ID from a list of byte slices returns
+// it. An error is returned if any IDs fail to unmarshal.
 func NewIDListFromBytes(topology [][]byte) ([]*ID, error) {
 	list := make([]*ID, len(topology))
 
-	for index, id := range topology {
-		newId, err := Unmarshal(id)
+	for i, idBytes := range topology {
+		id, err := Unmarshal(idBytes)
 		if err != nil {
-			return nil, errors.Errorf("Unable to marshal ID for index %d: %+v",
-				index, err)
+			return nil, errors.Errorf(
+				"unable to unmarshal ID at index %d: %+v", i, err)
 		}
 
-		list[index] = newId
+		list[i] = id
 	}
 
 	return list, nil
